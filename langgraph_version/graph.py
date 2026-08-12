@@ -14,6 +14,8 @@ llm = ChatGroq(
     temperature=0.3
 )
 
+MAX_CRITICAL_LOOPS = 1
+
 
 class State(TypedDict):
     topic: str
@@ -21,6 +23,7 @@ class State(TypedDict):
     vulnerabilities: str
     recommendations: str
     report: str
+    loop_count: int
 
 
 def search_exa(query: str, num_results: int = 5) -> str:
@@ -35,11 +38,25 @@ def search_exa(query: str, num_results: int = 5) -> str:
 # ── Node 1: Threat Intelligence Analyst ─────────────────────────────
 def threat_analyst_node(state: State) -> State:
     topic = state["topic"]
-    search_results = search_exa(f"recent cybersecurity threats {topic}")
+    loop_count = state.get("loop_count", 0)
+
+    if loop_count > 0:
+        query = f"detailed technical analysis of critical cybersecurity threats {topic}"
+        extra_instruction = (
+            "This is a FOLLOW-UP deep-dive because an earlier pass flagged something "
+            "critical. Dig deeper and be more specific than a first-pass summary."
+        )
+    else:
+        query = f"recent cybersecurity threats {topic}"
+        extra_instruction = ""
+
+    search_results = search_exa(query)
 
     prompt = f"""You are a Threat Intelligence Analyst. Based ONLY on this real, current information:
 
 {search_results}
+
+{extra_instruction}
 
 Summarize the most significant threats related to {topic} in 4-6 sentences."""
 
@@ -82,11 +99,31 @@ VULNERABILITIES:
 
 Recommend 3-5 concrete, prioritized mitigation actions, most urgent first, with a
 one-line justification each. When citing a CVE, use its exact ID and product name
-as given above — do not mix details between different CVEs."""
+as given above — do not mix details between different CVEs.
+
+End your response with exactly one line, in exactly this format, with nothing else
+on that line:
+SEVERITY_FLAG: CRITICAL
+or
+SEVERITY_FLAG: NORMAL
+
+Use CRITICAL only if at least one finding represents an actively-exploited,
+maximum-urgency risk. Otherwise use NORMAL."""
 
     response = llm.invoke(prompt)
     state["recommendations"] = response.content
+    state["loop_count"] = state.get("loop_count", 0) + 1
     return state
+
+
+# ── Conditional check: did the Advisor flag something critical? ────
+def check_criticality(state: State) -> str:
+    is_critical = "SEVERITY_FLAG: CRITICAL" in state["recommendations"]
+    under_loop_limit = state.get("loop_count", 0) <= MAX_CRITICAL_LOOPS
+
+    if is_critical and under_loop_limit:
+        return "loop_back"
+    return "proceed"
 
 
 # ── Node 4: Report Writer (no search — pure compilation) ────────────
@@ -105,14 +142,15 @@ RECOMMENDATIONS:
 {state['recommendations']}
 
 Copy CVE details (ID, product, severity, description) exactly as given — never
-recombine or guess. If unsure which detail belongs to which CVE, omit it."""
+recombine or guess. If unsure which detail belongs to which CVE, omit it.
+Do not include the raw "SEVERITY_FLAG" line in your final report — it's internal only."""
 
     response = llm.invoke(prompt)
     state["report"] = response.content
     return state
 
 
-# ── Build the graph: nodes + edges ───────────────────────────────────
+# ── Build the graph ───────────────────────────────────────────────
 def build_graph():
     graph = StateGraph(State)
 
@@ -124,7 +162,16 @@ def build_graph():
     graph.set_entry_point("analyst")
     graph.add_edge("analyst", "vuln_researcher")
     graph.add_edge("vuln_researcher", "advisor")
-    graph.add_edge("advisor", "writer")
+
+    graph.add_conditional_edges(
+        "advisor",
+        check_criticality,
+        {
+            "loop_back": "analyst",
+            "proceed": "writer"
+        }
+    )
+
     graph.add_edge("writer", END)
 
     return graph.compile()
@@ -137,7 +184,8 @@ def run_cyber_report(topic: str) -> str:
         "threats": "",
         "vulnerabilities": "",
         "recommendations": "",
-        "report": ""
+        "report": "",
+        "loop_count": 0
     }
     final_state = app.invoke(initial_state)
     return final_state["report"]
@@ -147,6 +195,6 @@ if __name__ == "__main__":
     topic = "ransomware"
     report = run_cyber_report(topic)
     print("\n" + "=" * 60)
-    print("FINAL REPORT (LangGraph version)")
+    print("FINAL REPORT (LangGraph — with conditional loop-back)")
     print("=" * 60)
     print(report)
