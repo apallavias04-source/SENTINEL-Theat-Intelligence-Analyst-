@@ -1,15 +1,25 @@
 import uuid
 from datetime import datetime
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from langgraph_version.graph import run_cyber_report
 from database import init_db, get_db, ReportJob
 
+# ── Create the app FIRST, before using it anywhere ──────────────────
 app = FastAPI(title="Cybersecurity Intelligence API")
 
-# Create the database file/table on startup, if it doesn't already exist
+# ── Allow the frontend (running on a different port) to call this API ──
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ── Create the database file/table on startup, if it doesn't exist ──
 init_db()
 
 
