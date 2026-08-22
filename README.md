@@ -2,8 +2,8 @@ SENTINEL — Autonomous Cybersecurity Threat Intelligence
 
 SENTINEL is a multi-agent AI system that generates structured cybersecurity intelligence reports on demand. Give it a topic — ransomware, a specific CVE class, phishing campaigns — and four specialized AI agents research it, cross-reference vulnerabilities, formulate mitigation advice, and compile a readable report, grounded in real, live web data rather than a model's static training knowledge.
 
-Live app: https://your-app-name.streamlit.app
-Live API docs: https://your-service-name.onrender.com/docs
+Live app: https://osarkgduavfpzyubevjrpt.streamlit.app/
+Live API docs: https://sentinel-theat-intelligence-analyst.onrender.com
 
 What it does
 You submit a topic through the web interface.
