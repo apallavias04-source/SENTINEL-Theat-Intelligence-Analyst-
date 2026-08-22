@@ -14,18 +14,21 @@ A Report Writer agent compiles everything into one structured markdown report.
 
 All of this runs asynchronously behind a REST API, backed by a persistent database, and is fully deployed and publicly accessible.
 
+Architecture
+
 <img width="1536" height="1024" alt="ChatGPT Image Aug 21, 2026, 08_19_58 PM" src="https://github.com/user-attachments/assets/38705014-77a2-434a-8e07-470da40c16d3" />
+
 
 Project structure
 .
-├── main.py                    # FastAPI backend — API endpoints, background job handling
-├── database.py                 # SQLAlchemy models and database session handling
-├── app.py                      # Streamlit frontend
+├── main.py                    
+├── database.py                 
+├── app.py                     
 ├── langgraph_version/
-│   └── graph.py                # Main pipeline: 4-node LangGraph with conditional routing
+│   └── graph.py                
 ├── crewai_reference/
-│   ├── crew_test.py             # Reference implementation using CrewAI
-│   └── tools.py                 # Exa search tool, wrapped for CrewAI
+│   ├── crew_test.py             
+│   └── tools.py                 
 ├── requirements.txt
 ├── .env.example
 └── README.md
@@ -33,7 +36,6 @@ Project structure
 Running it locally
 
 1. Clone and install dependencies
-
 bash
 git clone <this-repo-url>
 cd <repo-folder>
@@ -42,7 +44,6 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 2. Set up environment variables
-
 Copy .env.example to .env and fill in your own keys:
 
 GROQ_API_KEY=your_groq_key
@@ -51,14 +52,12 @@ EXA_API_KEY=your_exa_key
 Get a free Groq key at console.groq.com, and a free Exa key at exa.ai.
 
 3. Run the backend
-
 bash
 uvicorn main:app --reload
 
 Visit http://127.0.0.1:8000/docs to test the API directly.
 
 4. Run the frontend (in a second terminal)
-
 bash
 streamlit run app.py
 API endpoints
@@ -70,6 +69,6 @@ Known limitations
 Report completeness depends on search retrieval quality. If a live search returns limited results, agents are explicitly instructed to omit uncertain details rather than guess — this improves accuracy but can occasionally produce a shorter report than a less careful system would.
 The critical-finding severity check uses a structured signal (SEVERITY_FLAG: CRITICAL/NORMAL) rather than free-text keyword matching, specifically to avoid false positives from the model discussing severity in prose without actually flagging a real critical finding.
 Free-tier hosting means the backend may take 30–60 seconds to respond after a period of inactivity (cold start).
-Stack
 
-LangGraph · CrewAI (reference) · LangChain · Groq (Llama 3) · Exa · FastAPI · SQLAlchemy · SQLite · Streamlit
+
+Stack : LangGraph , CrewAI (reference) , LangChain , Groq (Llama 3) , Exa , FastAPI , SQLAlchemy , SQLite , Streamlit
