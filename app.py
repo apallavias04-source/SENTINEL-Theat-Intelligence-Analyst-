@@ -3,7 +3,7 @@ import requests
 import time
 import re
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://sentinel-theat-intelligence-analyst.onrender.com"
 
 st.set_page_config(page_title="SENTINEL — Threat Intelligence", page_icon="🛡️", layout="wide")
 
